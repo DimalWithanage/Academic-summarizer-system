@@ -1,0 +1,378 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="AI-Powered Academic Material Summarizer and Quiz Generator. Automate study preparation, upload lectures/notes, get summaries and interactive multiple choice quizzes.">
+        <title>Academic Material Summarizer & Quiz Generator</title>
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body>
+
+        <div class="app-container">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 3L1 9L12 15L21 10.09V17H23V9L12 3Z"/>
+                            <path d="M19 11.85V14.5C19 16.5 17.5 18 15.5 18H8.5C6.5 18 5 16.5 5 14.5V11.85L12 15.75L19 11.85Z" fill-opacity="0.5"/>
+                        </svg>
+                    </div>
+                    <div class="logo-text">AcaSum.ai</div>
+                </div>
+
+                <nav>
+                    <ul class="nav-menu">
+                        <li class="nav-item">
+                            <a id="nav-dashboard" class="nav-link active" onclick="switchView('dashboard')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="3" y="3" width="7" height="9" rx="1"/>
+                                    <rect x="14" y="3" width="7" height="5" rx="1"/>
+                                    <rect x="14" y="12" width="7" height="9" rx="1"/>
+                                    <rect x="3" y="16" width="7" height="5" rx="1"/>
+                                </svg>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="nav-upload" class="nav-link" onclick="switchView('upload')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                                </svg>
+                                <span>Upload Center</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="nav-summaries" class="nav-link" onclick="switchView('summaries')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <polyline points="10 9 9 9 8 9"/>
+                                </svg>
+                                <span>Study Notes</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="nav-quiz" class="nav-link" onclick="switchView('quiz')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                <span>Quiz Arena</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <div class="user-profile" id="userProfilePanel">
+                        <div class="user-avatar" id="profileAvatar">?</div>
+                        <div class="user-info">
+                            <div class="user-name" id="profileName">Not Signed In</div>
+                            <div class="user-email" id="profileEmail">Authentication required</div>
+                        </div>
+                        <button class="logout-btn" id="authActionBtn" onclick="openAuthModal()" title="Login">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content View -->
+            <main class="main-content">
+                
+                <!-- Dashboard View -->
+                <section id="dashboard-view" class="view-section active">
+                    <div class="top-header">
+                        <div class="welcome-title">
+                            <h1 id="welcomeGreeting">Welcome to AcaSum.ai</h1>
+                            <p>Generate smart summaries and practice quizzes from your study files.</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" onclick="switchView('upload')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Upload Material
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-grid">
+                        <div class="stats-card">
+                            <div class="stats-icon-wrapper primary">
+                                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="statMaterials">0</h3>
+                                <p>Study Materials</p>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-icon-wrapper secondary">
+                                <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="statSummaries">0</h3>
+                                <p>Summaries Generated</p>
+                            </div>
+                        </div>
+                        <div class="stats-card">
+                            <div class="stats-icon-wrapper accent">
+                                <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            </div>
+                            <div class="stats-info">
+                                <h3 id="statQuizzes">0</h3>
+                                <p>Quizzes Answered</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="materials-list-container">
+                        <div class="section-header">
+                            <h2 class="section-title">Your Academic Materials</h2>
+                        </div>
+                        
+                        <div class="materials-grid" id="materialsContainer">
+                            <!-- Loaded dynamically from app.js -->
+                            <div class="material-card" style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-secondary);">
+                                <p>No materials uploaded yet. Go to the Upload Center to add your study guides.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Upload View -->
+                <section id="upload-view" class="view-section">
+                    <div class="top-header">
+                        <div class="welcome-title">
+                            <h1>Upload Center</h1>
+                            <p>Upload lecture slides, textbooks, or notes (PDF format) to get started.</p>
+                        </div>
+                    </div>
+
+                    <div class="upload-container" id="dropZone" onclick="triggerFileInput()">
+                        <input type="file" id="fileInput" accept=".pdf" style="display: none;" onchange="handleFileSelect(event)">
+                        <div class="upload-icon-pulse">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <h3 class="upload-text">Drag and drop your academic PDF here</h3>
+                        <p class="upload-subtext">Supports PDF format up to 25MB. Files are synced to secure Google Drive storage.</p>
+                        <button class="btn btn-primary" type="button">Select PDF Document</button>
+                    </div>
+
+                    <div class="materials-list-container" style="margin-top: 2.5rem;">
+                        <h2 class="section-title" style="margin-bottom: 1rem;">Recent Upload Status</h2>
+                        <div class="materials-grid" id="uploadStatusGrid">
+                            <!-- Dynamic list of running uploads -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Summaries View -->
+                <section id="summaries-view" class="view-section">
+                    <div class="top-header">
+                        <div class="welcome-title">
+                            <h1>Academic Summaries</h1>
+                            <p>Review concise, AI-distilled summary notes key-concept lists.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                        <select id="summaryMaterialSelect" class="form-input" style="max-width: 320px;" onchange="loadSelectedSummary()">
+                            <option value="">-- Choose academic material --</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="exportSummary('markdown')" id="btnExportMarkdown" disabled>Export Markdown</button>
+                        <button class="btn btn-primary" onclick="triggerQuizFromSummary()" id="btnStartQuizFromSummary" disabled>Test with Quiz</button>
+                    </div>
+
+                    <div class="summary-container">
+                        <div class="summary-header">
+                            <h2 id="summaryDocTitle">Select a document from above</h2>
+                        </div>
+                        <article class="markdown-body" id="summaryRenderArea">
+                            <p style="color: var(--text-secondary);">Select an uploaded lecture or chapter from the drop-down menu to display its AI generated summary notes.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- Quiz Arena View -->
+                <section id="quiz-view" class="view-section">
+                    <div class="top-header">
+                        <div class="welcome-title">
+                            <h1>Quiz Arena</h1>
+                            <p>Test your knowledge with multiple-choice questions custom built from your lectures.</p>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Prep Screen -->
+                    <div id="quizPrepScreen" class="quiz-arena">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 1rem;">Start Quiz Setup</h2>
+                        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Configure your learning check session. The AI will formulate questions matching your source document details.</p>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="quizMaterialSelect">Select Study Source</label>
+                            <select id="quizMaterialSelect" class="form-input">
+                                <option value="">-- Choose academic material --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div>
+                                <label class="form-label" for="quizCountSelect">Number of Questions</label>
+                                <select id="quizCountSelect" class="form-input">
+                                    <option value="5">5 Questions</option>
+                                    <option value="10" selected>10 Questions</option>
+                                    <option value="15">15 Questions</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" for="quizTimeLimit">Timer per Question</label>
+                                <select id="quizTimeLimit" class="form-input">
+                                    <option value="30">30 seconds</option>
+                                    <option value="60" selected>60 seconds</option>
+                                    <option value="120">2 minutes</option>
+                                    <option value="0">No limit</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary" onclick="initiateQuizSession()">Generate AI Quiz</button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Runner Screen -->
+                    <div id="quizRunnerScreen" class="quiz-arena" style="display: none;">
+                        <div class="quiz-header">
+                            <span id="quizIndexIndicator">Question 1 of 5</span>
+                            <div class="quiz-progress-container">
+                                <div class="progress-track">
+                                    <div class="progress-bar" id="quizProgressBar"></div>
+                                </div>
+                            </div>
+                            <div class="quiz-timer" id="quizTimerBox">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span id="quizTimerText">00:00</span>
+                            </div>
+                        </div>
+
+                        <div class="quiz-question-box">
+                            <div class="quiz-question-number" id="questionStepLabel">Question 1</div>
+                            <div class="quiz-question-text" id="questionText">Loading quiz question content...</div>
+                        </div>
+
+                        <div class="quiz-options-list" id="quizOptionsContainer">
+                            <!-- Option items loaded dynamically by quiz.js -->
+                        </div>
+
+                        <div class="quiz-explanation-box" id="quizExplanationBox">
+                            <!-- Correction explanation shown on submit -->
+                        </div>
+
+                        <div class="quiz-footer">
+                            <button class="btn btn-secondary" onclick="exitQuizSession()">Exit Quiz</button>
+                            <button class="btn btn-primary" id="quizNextBtn" onclick="handleQuizNext()">Submit Answer</button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Result Screen -->
+                    <div id="quizResultScreen" class="quiz-arena" style="display: none;">
+                        <div class="quiz-results">
+                            <div class="score-radial-progress" id="scoreConicGradient">
+                                <div class="score-radial-inner">
+                                    <span class="score-number" id="resultScoreText">80%</span>
+                                    <span class="score-label">Final Score</span>
+                                </div>
+                            </div>
+
+                            <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;" id="resultTitle">Well Done!</h2>
+                            <p style="color: var(--text-secondary); max-width: 500px; margin: 0 auto 2.5rem;" id="resultDescription">
+                                You got 4 out of 5 questions correct. Review your dashboard performance.
+                            </p>
+
+                            <div style="display: flex; justify-content: center; gap: 1rem;">
+                                <button class="btn btn-secondary" onclick="restartQuizPrep()">Take Another Quiz</button>
+                                <button class="btn btn-primary" onclick="switchView('dashboard')">Back to Dashboard</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+
+        <!-- Auth Modal -->
+        <div class="modal" id="authModal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+                <h2 class="modal-title" id="authModalTitle">Sign In</h2>
+                
+                <div id="loginFormContainer">
+                    <form id="loginForm" onsubmit="handleAuthSubmit(event, 'login')" autocomplete="off">
+                        <div class="form-group">
+                            <label class="form-label" for="loginEmail">Email Address</label>
+                            <input type="email" id="loginEmail" class="form-input" placeholder="student@university.edu" autocomplete="off" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" autocomplete="new-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Sign In</button>
+                    </form>
+                    <div class="form-footer-link">
+                        Don't have an account? <a href="#" onclick="toggleAuthModalTab('signup')">Create Account</a>
+                    </div>
+                </div>
+
+                <div id="signupFormContainer" style="display: none;">
+                    <form id="signupForm" onsubmit="handleAuthSubmit(event, 'signup')" autocomplete="off">
+                        <div class="form-group">
+                            <label class="form-label" for="signupName">Full Name</label>
+                            <input type="text" id="signupName" class="form-input" placeholder="Jane Doe" autocomplete="off" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="signupEmail">Email Address</label>
+                            <input type="email" id="signupEmail" class="form-input" placeholder="student@university.edu" autocomplete="off" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="signupPassword">Password</label>
+                            <input type="password" id="signupPassword" class="form-input" placeholder="Min. 8 characters" minlength="8" autocomplete="new-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Create Account</button>
+                    </form>
+                    <div class="form-footer-link">
+                        Already have an account? <a href="#" onclick="toggleAuthModalTab('login')">Sign In</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spinner Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingOverlayText">Analyzing material with Google Gemini AI...</div>
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div class="toast-container" id="toastContainer"></div>
+
+        <!-- Application Code -->
+        <script src="js/app.js"></script>
+        <script src="js/quiz.js"></script>
+    </body>
+    </html>
