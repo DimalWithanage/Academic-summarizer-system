@@ -48,7 +48,8 @@ async function initiateQuizSession() {
     
     showLoading(true, 'Gemini AI generating interactive quiz...');
     
-    // Try fetching from real Spring Boot backend if available
+    // Always fetch real quiz from Spring Boot database first
+    let fetchedFromBackend = false;
     if (!isNaN(parseInt(materialId))) {
         try {
             const resp = await fetch(`${API_BASE_URL}/ai/quiz`, {
@@ -59,56 +60,66 @@ async function initiateQuizSession() {
 
             if (resp.ok) {
                 const data = await resp.json();
-                const parsed = JSON.parse(data.aiOutput);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    state.quizzes[materialId] = parsed;
+                if (data && data.aiOutput) {
+                    try {
+                        let cleanJson = data.aiOutput.trim();
+                        if (cleanJson.startsWith('```')) {
+                            cleanJson = cleanJson.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+                        }
+                        const parsed = JSON.parse(cleanJson);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            state.quizzes[materialId] = parsed;
+                            fetchedFromBackend = true;
+                            saveLocalData();
+                        }
+                    } catch (parseErr) {
+                        console.warn('Quiz JSON parse error:', parseErr, data.aiOutput);
+                    }
                 }
             }
         } catch (e) {
-            console.warn('Backend Quiz API call failed, using cached/mock quiz data:', e);
+            console.warn('Backend Quiz API call failed:', e);
         }
     }
     
-    setTimeout(() => {
-        showLoading(false);
-        
-        // Load questions from state. If they don't exist, generate them
-        if (!state.quizzes[materialId]) {
-            const material = state.materials.find(m => m.id === materialId);
-            generateMockAIOutputs(materialId, material ? material.name : 'Study Material');
-        }
-        
-        const sourceQuestions = state.quizzes[materialId] || [];
-        if (sourceQuestions.length === 0) {
-            showToast('No questions could be formulated for this document.', 'danger');
-            return;
-        }
-        
-        // Reset quiz runner state
-        quizState.materialId = materialId;
-        
-        // Duplicate/slice to match requested count or pad if necessary
-        quizState.questions = [...sourceQuestions];
-        while (quizState.questions.length < requestedCount) {
-            quizState.questions = quizState.questions.concat(sourceQuestions.map(q => ({
-                ...q,
-                question: "[Expanded Check] " + q.question
-            })));
-        }
-        quizState.questions = quizState.questions.slice(0, requestedCount);
-        
-        quizState.currentIndex = 0;
-        quizState.score = 0;
-        quizState.timeLimitPerQuestion = limit;
-        quizState.hasTimerLimit = limit > 0;
-        
-        // Hide prep, show runner
-        document.getElementById('quizPrepScreen').style.display = 'none';
-        document.getElementById('quizRunnerScreen').style.display = 'block';
-        document.getElementById('quizResultScreen').style.display = 'none';
-        
-        renderQuestion();
-    }, 1000);
+    // Only use mock data as last resort if backend fetch failed completely
+    if (!fetchedFromBackend && !state.quizzes[materialId]) {
+        const material = state.materials.find(m => m.id === materialId);
+        generateMockAIOutputs(materialId, material ? material.name : 'Study Material');
+    }
+
+    showLoading(false);
+    
+    const sourceQuestions = state.quizzes[materialId] || [];
+    if (sourceQuestions.length === 0) {
+        showToast('No questions could be formulated for this document.', 'danger');
+        return;
+    }
+    
+    // Reset quiz runner state
+    quizState.materialId = materialId;
+    
+    // Duplicate/slice to match requested count or pad if necessary
+    quizState.questions = [...sourceQuestions];
+    while (quizState.questions.length < requestedCount) {
+        quizState.questions = quizState.questions.concat(sourceQuestions.map(q => ({
+            ...q,
+            question: "[Expanded Check] " + q.question
+        })));
+    }
+    quizState.questions = quizState.questions.slice(0, requestedCount);
+    
+    quizState.currentIndex = 0;
+    quizState.score = 0;
+    quizState.timeLimitPerQuestion = limit;
+    quizState.hasTimerLimit = limit > 0;
+    
+    // Hide prep, show runner
+    document.getElementById('quizPrepScreen').style.display = 'none';
+    document.getElementById('quizRunnerScreen').style.display = 'block';
+    document.getElementById('quizResultScreen').style.display = 'none';
+    
+    renderQuestion();
 }
 
 // -------------------------------------------------------------
