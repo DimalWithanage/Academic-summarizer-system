@@ -1,0 +1,8 @@
+{
+  "name": "academic-summarizer-system",
+  "version": "1.0.0",
+  "description": "Academic Material Summarizer & Quiz Generator",
+  "scripts": {
+    "dev": "npx -y http-server frontend -p 3000"
+  }
+}
