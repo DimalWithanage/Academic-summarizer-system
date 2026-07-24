@@ -81,6 +81,13 @@
             <version>1.43.3</version>
         </dependency>
 
+        <!-- Apache PDFBox for PDF text extraction -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+
         <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
