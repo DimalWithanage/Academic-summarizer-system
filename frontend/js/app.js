@@ -469,14 +469,16 @@ function populateMaterialDropdowns(elementId) {
 // -------------------------------------------------------------
 // Summary Panel Handlers
 // -------------------------------------------------------------
-function viewSummary(materialId) {
+async function viewSummary(materialId) {
     switchView('summaries');
     const select = document.getElementById('summaryMaterialSelect');
-    select.value = materialId;
-    loadSelectedSummary();
+    if (select) {
+        select.value = materialId;
+    }
+    await loadSelectedSummary();
 }
 
-function loadSelectedSummary() {
+async function loadSelectedSummary() {
     const select = document.getElementById('summaryMaterialSelect');
     const renderArea = document.getElementById('summaryRenderArea');
     const docTitle = document.getElementById('summaryDocTitle');
@@ -493,17 +495,48 @@ function loadSelectedSummary() {
     }
     
     const currentDoc = state.materials.find(m => m.id === val);
-    const summaryMarkdown = state.summaries[val];
-    
-    if (currentDoc && summaryMarkdown) {
+    if (currentDoc) {
         docTitle.textContent = currentDoc.name;
+    }
+
+    let summaryMarkdown = null;
+    
+    // Always fetch real content from database first for backend materials
+    if (!isNaN(parseInt(val))) {
+        renderArea.innerHTML = '<p style="color: var(--primary);">Loading study notes from database...</p>';
+        try {
+            const summaryResp = await fetch(`${API_BASE_URL}/ai/summary`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ materialId: parseInt(val), contentType: 'SUMMARY' })
+            });
+            if (summaryResp.ok) {
+                const summaryData = await summaryResp.json();
+                if (summaryData && summaryData.aiOutput) {
+                    summaryMarkdown = summaryData.aiOutput;
+                    state.summaries[val] = summaryMarkdown;
+                    saveLocalData();
+                }
+            }
+        } catch (err) {
+            console.warn('Error loading summary from database:', err);
+        }
+    }
+    
+    // Fall back to cached localStorage data only if DB fetch failed
+    if (!summaryMarkdown) {
+        summaryMarkdown = state.summaries[val];
+    }
+    
+    if (summaryMarkdown) {
         renderArea.innerHTML = parseMarkdown(summaryMarkdown);
         exportBtn.disabled = false;
         quizBtn.disabled = false;
     } else {
-        renderArea.innerHTML = '<p style="color: var(--danger);">Error loading summary content.</p>';
+        renderArea.innerHTML = '<p style="color: var(--danger);">No summary found. Please re-upload the PDF to generate study notes.</p>';
     }
 }
+
 
 function triggerQuizFromSummary() {
     const select = document.getElementById('summaryMaterialSelect');
@@ -535,27 +568,143 @@ function exportSummary(format) {
     }
 }
 
-// Markdown Parser Helper
+// Markdown Parser Helper — supports headings, bold, italic, inline code,
+// fenced code blocks, tables, numbered lists, bullet lists, horizontal rules
 function parseMarkdown(mdText) {
-    // Simple custom markdown bold/list parser for sleek aesthetics
-    let html = mdText
-        .replace(/### (.*)/g, '<h3 style="color: #fff; font-size: 1.15rem; margin-top: 1.25rem; margin-bottom: 0.5rem; font-family:\'Outfit\';">$1</h3>')
-        .replace(/## (.*)/g, '<h2 style="color: #fff; font-size: 1.4rem; margin-top: 1.5rem; margin-bottom: 0.75rem; font-family:\'Outfit\'; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;">$1</h2>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #fff; font-weight: 600;">$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/^- (.*)/gm, '<li style="margin-left: 1rem; margin-bottom: 0.4rem; list-style-type: square; color: var(--text-secondary);"><span style="color: var(--text-primary);">$1</span></li>');
-        
-    // Wrap lists
-    html = html.replace(/(<li.*<\/li>)/gs, '<ul style="margin-bottom: 1.25rem; padding-left: 0.5rem;">$1</ul>');
-    // Paragraph spaces
-    html = html.split('\n\n').map(p => {
-        if (!p.trim().startsWith('<h') && !p.trim().startsWith('<ul')) {
-            return `<p style="margin-bottom: 1rem; color: var(--text-secondary);">${p.trim()}</p>`;
+    let html = '';
+    const lines = mdText.split('\n');
+    let i = 0;
+    let inCodeBlock = false;
+    let codeBlockContent = '';
+    let codeBlockLang = '';
+
+    while (i < lines.length) {
+        const line = lines[i];
+
+        // --- Fenced code blocks (``` ... ```) ---
+        if (line.trim().startsWith('```')) {
+            if (!inCodeBlock) {
+                inCodeBlock = true;
+                codeBlockLang = line.trim().replace('```', '').trim();
+                codeBlockContent = '';
+                i++;
+                continue;
+            } else {
+                inCodeBlock = false;
+                html += `<pre style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 1rem 0; font-size: 0.9rem;"><code style="color: #c9d1d9; font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;">${escapeHtml(codeBlockContent.trimEnd())}</code></pre>`;
+                i++;
+                continue;
+            }
         }
-        return p;
-    }).join('');
-    
+        if (inCodeBlock) {
+            codeBlockContent += line + '\n';
+            i++;
+            continue;
+        }
+
+        // --- Horizontal rule (--- or ***) ---
+        if (/^(\s*[-*_]){3,}\s*$/.test(line)) {
+            html += '<hr style="border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1.5rem 0;">';
+            i++;
+            continue;
+        }
+
+        // --- Table detection (lines with |) ---
+        if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+            let tableHtml = '<div style="overflow-x: auto; margin: 1rem 0;"><table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">';
+            // Collect all table rows
+            let tableRows = [];
+            while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+                tableRows.push(lines[i]);
+                i++;
+            }
+            tableRows.forEach((row, rowIdx) => {
+                // Skip separator row (| :--- | :--- |)
+                if (/^[\s|:-]+$/.test(row.replace(/\|/g, '').trim())) return;
+                const cells = row.split('|').filter(c => c.trim() !== '');
+                const isHeader = rowIdx === 0;
+                const tag = isHeader ? 'th' : 'td';
+                const bgStyle = isHeader ? 'background: rgba(255,255,255,0.06);' : '';
+                tableHtml += '<tr>';
+                cells.forEach(cell => {
+                    tableHtml += `<${tag} style="padding: 8px 12px; border: 1px solid rgba(255,255,255,0.08); color: var(--text-primary); ${bgStyle} text-align: left;">${formatInline(cell.trim())}</${tag}>`;
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</table></div>';
+            html += tableHtml;
+            continue;
+        }
+
+        // --- Headings ---
+        if (line.startsWith('#### ')) {
+            html += `<h4 style="color: #fff; font-size: 1.05rem; margin-top: 1.1rem; margin-bottom: 0.4rem; font-family:'Outfit';">${formatInline(line.substring(5))}</h4>`;
+            i++; continue;
+        }
+        if (line.startsWith('### ')) {
+            html += `<h3 style="color: #fff; font-size: 1.15rem; margin-top: 1.25rem; margin-bottom: 0.5rem; font-family:'Outfit';">${formatInline(line.substring(4))}</h3>`;
+            i++; continue;
+        }
+        if (line.startsWith('## ')) {
+            html += `<h2 style="color: #fff; font-size: 1.4rem; margin-top: 1.5rem; margin-bottom: 0.75rem; font-family:'Outfit'; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;">${formatInline(line.substring(3))}</h2>`;
+            i++; continue;
+        }
+        if (line.startsWith('# ')) {
+            html += `<h1 style="color: #fff; font-size: 1.6rem; margin-top: 1.75rem; margin-bottom: 0.75rem; font-family:'Outfit';">${formatInline(line.substring(2))}</h1>`;
+            i++; continue;
+        }
+
+        // --- Unordered list items (- or * or  *) ---
+        if (/^\s*[\-\*]\s+/.test(line)) {
+            let listHtml = '<ul style="margin-bottom: 1rem; padding-left: 1.25rem;">';
+            while (i < lines.length && /^\s*[\-\*]\s+/.test(lines[i])) {
+                const content = lines[i].replace(/^\s*[\-\*]\s+/, '');
+                listHtml += `<li style="margin-bottom: 0.4rem; list-style-type: disc; color: var(--text-secondary);"><span style="color: var(--text-primary);">${formatInline(content)}</span></li>`;
+                i++;
+            }
+            listHtml += '</ul>';
+            html += listHtml;
+            continue;
+        }
+
+        // --- Ordered list items (1. 2. 3.) ---
+        if (/^\s*\d+\.\s+/.test(line)) {
+            let olHtml = '<ol style="margin-bottom: 1rem; padding-left: 1.25rem; color: var(--text-secondary);">';
+            while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+                const content = lines[i].replace(/^\s*\d+\.\s+/, '');
+                olHtml += `<li style="margin-bottom: 0.4rem; color: var(--text-secondary);"><span style="color: var(--text-primary);">${formatInline(content)}</span></li>`;
+                i++;
+            }
+            olHtml += '</ol>';
+            html += olHtml;
+            continue;
+        }
+
+        // --- Empty line = spacing ---
+        if (line.trim() === '') {
+            i++;
+            continue;
+        }
+
+        // --- Regular paragraph ---
+        html += `<p style="margin-bottom: 0.75rem; color: var(--text-secondary); line-height: 1.7;">${formatInline(line)}</p>`;
+        i++;
+    }
+
     return html;
+}
+
+// Inline formatting: bold, italic, inline code, backtick code
+function formatInline(text) {
+    return text
+        .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; color: #e6db74; font-family: monospace;">$1</code>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #fff; font-weight: 600;">$1</strong>')
+        .replace(/(?<![*])\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
+}
+
+// HTML escape helper for code blocks
+function escapeHtml(text) {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // -------------------------------------------------------------
@@ -732,25 +881,23 @@ async function fetchUserMaterialsFromBackend(userId) {
                     uploadedAt: m.uploadedAt ? new Date(m.uploadedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString()
                 }));
 
-                // Synchronize summaries for all backend materials
+                // Always sync real summaries from database (overrides stale mock data)
                 for (const m of materialsList) {
                     const matIdStr = String(m.materialId);
-                    if (!state.summaries[matIdStr]) {
-                        try {
-                            const summaryResp = await fetch(`${API_BASE_URL}/ai/summary`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ materialId: m.materialId, contentType: 'SUMMARY' })
-                            });
-                            if (summaryResp.ok) {
-                                const summaryData = await summaryResp.json();
-                                if (summaryData && summaryData.aiOutput) {
-                                    state.summaries[matIdStr] = summaryData.aiOutput;
-                                }
+                    try {
+                        const summaryResp = await fetch(`${API_BASE_URL}/ai/summary`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ materialId: m.materialId, contentType: 'SUMMARY' })
+                        });
+                        if (summaryResp.ok) {
+                            const summaryData = await summaryResp.json();
+                            if (summaryData && summaryData.aiOutput) {
+                                state.summaries[matIdStr] = summaryData.aiOutput;
                             }
-                        } catch (err) {
-                            console.warn('Could not fetch summary for material ' + m.materialId, err);
                         }
+                    } catch (err) {
+                        console.warn('Could not fetch summary for material ' + m.materialId, err);
                     }
                 }
 
