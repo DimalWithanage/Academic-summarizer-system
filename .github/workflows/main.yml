@@ -51,10 +51,45 @@ jobs:
           docker push "$IMAGE_URI"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
-      # 6. Deploy to Cloud Run — IMAGE_URI read from shell env (set by step above)
-      #    All API keys are injected as Cloud Run environment variables; no secrets in code.
+      # 6. Deploy to Cloud Run — dynamically pass configured env vars (ignores empty secrets)
       - name: Deploy Backend to Cloud Run
         run: |
+          ENV_VARS="SPRING_PROFILES_ACTIVE=prod"
+
+          if [ -n "${{ secrets.DB_URL }}" ]; then
+            ENV_VARS="$ENV_VARS,SPRING_DATASOURCE_URL=${{ secrets.DB_URL }}"
+            ENV_VARS="$ENV_VARS,SPRING_DATASOURCE_DRIVER=com.mysql.cj.jdbc.Driver"
+            ENV_VARS="$ENV_VARS,SPRING_JPA_PLATFORM=org.hibernate.dialect.MySQLDialect"
+          fi
+
+          if [ -n "${{ secrets.DB_USERNAME }}" ]; then
+            ENV_VARS="$ENV_VARS,SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }}"
+          fi
+
+          if [ -n "${{ secrets.DB_PASSWORD }}" ]; then
+            ENV_VARS="$ENV_VARS,SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}"
+          fi
+
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            ENV_VARS="$ENV_VARS,GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"
+          fi
+
+          if [ -n "${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}" ]; then
+            ENV_VARS="$ENV_VARS,GOOGLE_DRIVE_FOLDER_ID=${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}"
+          fi
+
+          if [ -n "${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}" ]; then
+            ENV_VARS="$ENV_VARS,GOOGLE_DRIVE_CLIENT_ID=${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}"
+          fi
+
+          if [ -n "${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}" ]; then
+            ENV_VARS="$ENV_VARS,GOOGLE_DRIVE_CLIENT_SECRET=${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}"
+          fi
+
+          if [ -n "${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}" ]; then
+            ENV_VARS="$ENV_VARS,GOOGLE_DRIVE_REFRESH_TOKEN=${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}"
+          fi
+
           gcloud run deploy ${{ env.BACKEND_SERVICE }} \
             --image "$IMAGE_URI" \
             --platform managed \
@@ -65,14 +100,7 @@ jobs:
             --cpu 1 \
             --min-instances 0 \
             --max-instances 3 \
-            --set-env-vars "SPRING_DATASOURCE_URL=${{ secrets.DB_URL }}" \
-            --set-env-vars "SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }}" \
-            --set-env-vars "SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }}" \
-            --set-env-vars "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" \
-            --set-env-vars "GOOGLE_DRIVE_FOLDER_ID=${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}" \
-            --set-env-vars "GOOGLE_DRIVE_CLIENT_ID=${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}" \
-            --set-env-vars "GOOGLE_DRIVE_CLIENT_SECRET=${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}" \
-            --set-env-vars "GOOGLE_DRIVE_REFRESH_TOKEN=${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}"
+            --set-env-vars "$ENV_VARS"
 
       # 7. Print the live backend URL
       - name: Print Backend URL
