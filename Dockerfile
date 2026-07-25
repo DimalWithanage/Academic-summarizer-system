@@ -12,11 +12,16 @@ RUN mvn -B package -DskipTests --file pom.xml
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Copy compiled JAR safely and explicitly
+# Copy compiled JAR
 COPY --from=builder /app/target/academic-summarizer-0.0.1-SNAPSHOT.jar app.jar
 
-# Expose the Cloud Run expected port
+# Expose default port (Cloud Run overrides with $PORT env var)
 EXPOSE 8080
 
-# Run the application bound to 0.0.0.0 (Cloud Run requirement)
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-Dserver.port=${PORT:8080}", "-Dserver.address=0.0.0.0", "-jar", "app.jar"]
+# Use SHELL form (not exec form) so $PORT env variable is expanded at runtime.
+# Cloud Run injects PORT env var; Spring Boot reads it via server.port=${PORT:8080}
+# server.address=0.0.0.0 ensures Cloud Run's TCP probe can reach the app.
+ENTRYPOINT exec java \
+  -Dspring.profiles.active=prod \
+  -Dserver.address=0.0.0.0 \
+  -jar app.jar
