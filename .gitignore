@@ -1,24 +1,39 @@
-# Compiled class file
-*.class
+# ============================================================
+# Files to NEVER commit to GitHub
+# ============================================================
 
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# ── Java / Maven Build Outputs ──────────────────────────────
+target/
 *.jar
 *.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+*.class
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# ── Application Properties with REAL secrets ─────────────────
+# Keep application.properties (local dev) OUT of git if it has real keys.
+# Use application-prod.properties with env var placeholders instead.
+backend/src/main/resources/application.properties
+
+# ── Google Cloud Service Account Key files ───────────────────
+# NEVER commit JSON credential files
+backend/src/main/resources/service_account.json
+*.json
+!firebase.json
+!package.json
+
+# ── IDE files ────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+nbproject/
+nb-configuration.xml
+
+# ── OS files ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Node.js ──────────────────────────────────────────────────
+node_modules/
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
