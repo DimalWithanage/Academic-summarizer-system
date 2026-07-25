@@ -12,13 +12,11 @@ RUN mvn -B package -DskipTests --file pom.xml
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Copy compiled JAR from builder stage
-COPY --from=builder /app/target/*.jar app.jar
+# Copy compiled JAR safely and explicitly
+COPY --from=builder /app/target/academic-summarizer-0.0.1-SNAPSHOT.jar app.jar
 
-# Expose the Spring Boot default port
+# Expose the Cloud Run expected port
 EXPOSE 8080
 
-# Run the application — SPRING_PROFILES_ACTIVE=prod tells Spring Boot to load
-# application-prod.properties which uses ${ENV_VAR} placeholders.
-# Cloud Run injects the real values as environment variables at deploy time.
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
+# Run the application bound to 0.0.0.0 (Cloud Run requirement)
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-Dserver.port=${PORT:8080}", "-Dserver.address=0.0.0.0", "-jar", "app.jar"]
