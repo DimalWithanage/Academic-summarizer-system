@@ -18,5 +18,7 @@ COPY --from=builder /app/target/*.jar app.jar
 # Expose the Spring Boot default port
 EXPOSE 8080
 
-# Run the application — environment variables override application.properties at runtime
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application — SPRING_PROFILES_ACTIVE=prod tells Spring Boot to load
+# application-prod.properties which uses ${ENV_VAR} placeholders.
+# Cloud Run injects the real values as environment variables at deploy time.
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
