@@ -30,35 +30,25 @@ An **AI-Powered Academic Platform** designed to automate exam preparation and st
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart TD
-    subgraph Client["Client Browser (Frontend)"]
-        UI["Modern SPA Interface<br/>(HTML5 / CSS3 / JavaScript)"]
-        QuizEngine["Interactive Quiz Engine<br/>(quiz.js)"]
-    end
+graph TD
+    UI["Frontend SPA (HTML5 / CSS3 / JS)"]
+    QuizEngine["Interactive Quiz Engine (quiz.js)"]
+    FB["Firebase Hosting (Static CDN)"]
+    API["Spring Boot 3.3.1 REST API (Cloud Run)"]
+    PDFParser["Apache PDFBox Text Extractor"]
+    AuthModule["Spring Security (BCrypt Hashing)"]
+    Gemini["Google Gemini AI API"]
+    GDrive["Google Drive API v3 Backup"]
+    Database[("MySQL / H2 Database")]
 
-    subgraph Hosting["Firebase Hosting (CDN)"]
-        FB["Static Frontend Assets<br/>(index.html, app.js, style.css)"]
-    end
-
-    subgraph Backend["Google Cloud Run (Java Backend)"]
-        API["Spring Boot 3.3.1 REST API"]
-        PDFParser["Apache PDFBox<br/>Text Extractor"]
-        AuthModule["Spring Security<br/>BCrypt Password Hashing"]
-    end
-
-    subgraph CloudServices["External & Cloud Services"]
-        Gemini["Google Gemini AI API<br/>(gemini-3.6-flash / 3.5-flash)"]
-        GDrive["Google Drive API v3<br/>(Material Backup)"]
-        Database[("MySQL / H2 Database")]
-    end
-
-    Client -->|Loads App| FB
+    UI -->|Loads Assets| FB
     UI -->|REST API Requests| API
+    QuizEngine -->|Quiz Evaluation| API
     API -->|Extracts Text| PDFParser
-    API -->|Password Hashing & Auth| AuthModule
-    API -->|AI Summary & Quiz Generation| Gemini
-    API -->|Uploads PDF Backup| GDrive
-    API -->|Performs Persistence| Database
+    API -->|Authentication| AuthModule
+    API -->|AI Summaries & Quizzes| Gemini
+    API -->|Cloud Storage Backup| GDrive
+    API -->|Data Persistence| Database
 ```
 
 ---
